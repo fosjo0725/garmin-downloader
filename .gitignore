@@ -1,4 +1,6 @@
 garmin_fits/
+garmin_sessions.json
 __pycache__/
 *.pyc
 .env
+.garmin_session/
