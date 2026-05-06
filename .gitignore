@@ -1,0 +1,4 @@
+garmin_fits/
+__pycache__/
+*.pyc
+.env
