@@ -24,6 +24,13 @@ except ImportError:
     raise SystemExit(1)
 
 
+# Garmin FIT sport numeric codes that fitparse doesn't resolve to names
+FIT_SPORT_CODES = {
+    "62": "hiit",
+    "64": "squash",
+    "86": "mobility",
+}
+
 ACTIVITY_TYPE_MAP = {
     "cycling": "cycling",
     "strength_training": "strength_training",
@@ -151,7 +158,8 @@ def parse_fit_file(filepath: str) -> dict:
         ts = session.get("start_time")
         result["start_time"] = ts.isoformat() if hasattr(ts, "isoformat") else str(ts) if ts else None
 
-        result["sport"] = str(session.get("sport", "")).replace("Sport.", "")
+        raw_sport = str(session.get("sport", "")).replace("Sport.", "")
+        result["sport"] = FIT_SPORT_CODES.get(raw_sport, raw_sport)
         result["sub_sport"] = str(session.get("sub_sport", "")).replace("SubSport.", "")
 
         elapsed = session.get("total_elapsed_time") or session.get("total_timer_time")

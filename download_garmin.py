@@ -36,20 +36,33 @@ API_BASE = "https://connectapi.garmin.com"
 DOWNLOAD_BASE = "https://connectapi.garmin.com"
 
 
-def get_session(email: str, password: str) -> tuple[str, requests.Session]:
+def get_session(email, password) -> tuple:
     """Возвращает (access_token, requests.Session с куками SSO)."""
     garth.configure(domain="garmin.com")
 
     if SESSION_DIR.exists():
         try:
             garth.client.load(str(SESSION_DIR))
-            # Проверяем что токен ещё живой
             token = garth.client.oauth2_token
             if token and token.access_token:
-                print("Использую сохранённую сессию.")
+                if token.expired and not token.refresh_expired:
+                    print("Access token истёк — обновляю через refresh token...")
+                    garth.client.refresh_oauth2()
+                    garth.client.dump(str(SESSION_DIR))
+                    token = garth.client.oauth2_token
+                    print("Токен обновлён и сохранён.")
+                elif token.expired:
+                    raise Exception("Оба токена истекли")
+                else:
+                    print("Использую сохранённую сессию.")
                 return _make_session(token.access_token)
-        except Exception:
-            print("Сохранённая сессия устарела, логинюсь заново...")
+        except Exception as e:
+            print(f"Сессия недействительна ({e}), логинюсь заново...")
+
+    if not email:
+        email = os.environ.get("GARMIN_EMAIL") or input("Garmin email: ")
+    if not password:
+        password = os.environ.get("GARMIN_PASSWORD") or getpass.getpass("Garmin пароль: ")
 
     garth.login(email, password)
 
@@ -187,8 +200,8 @@ def main():
     parser.add_argument("--end", default=str(date.today()), help="Конечная дата YYYY-MM-DD")
     args = parser.parse_args()
 
-    email = args.email or os.environ.get("GARMIN_EMAIL") or input("Garmin email: ")
-    password = args.password or os.environ.get("GARMIN_PASSWORD") or getpass.getpass("Garmin пароль: ")
+    email = args.email or os.environ.get("GARMIN_EMAIL") or None
+    password = args.password or os.environ.get("GARMIN_PASSWORD") or None
 
     try:
         start_date = date.fromisoformat(args.start)

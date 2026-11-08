@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 .env
 .garmin_session/
+garmin_sessions*.json
+.DS_Store
